@@ -1,0 +1,52 @@
+From: Werner Koch <wk@gnupg.org>
+Date: Mon, 10 Feb 2020 14:49:51 +0100
+Subject: logging: Also protect gpgrt_inc_errorcount against counter overflow.
+
+* src/logging.c (_gpgrt_inc_errorcount): Protect against counter
+overflow.
+(_gpgrt_logv_internal): Use that function here so that we have only
+one check for counter overflow.
+--
+
+We already had an overflow checking for log_error but not for the
+silent increment function.
+
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit d72c1ddfde09ffa69745ec2439c5a16d15e2202f)
+---
+ src/logging.c | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/src/logging.c b/src/logging.c
+index b6b727e..e4b7e40 100644
+--- a/src/logging.c
++++ b/src/logging.c
+@@ -126,11 +126,13 @@ _gpgrt_get_errorcount (int clear)
+ }
+ 
+ 
+-/* Increment the error count as maintainer by the log functions.  */
++/* Increment the error count as maintained by the log functions.  */
+ void
+ _gpgrt_inc_errorcount (void)
+ {
+-   errorcount++;
++  /* Protect against counter overflow.  */
++  if (errorcount < 30000)
++    errorcount++;
+ }
+ 
+ 
+@@ -1053,11 +1055,7 @@ _gpgrt_logv_internal (int level, int ignore_arg_ptr, const char *extrastring,
+ 
+   /* Bumb the error counter for log_error.  */
+   if (level == GPGRT_LOGLVL_ERROR)
+-    {
+-      /* Protect against counter overflow.  */
+-      if (errorcount < 30000)
+-        errorcount++;
+-    }
++    _gpgrt_inc_errorcount ();
+ 
+   return length;
+ }

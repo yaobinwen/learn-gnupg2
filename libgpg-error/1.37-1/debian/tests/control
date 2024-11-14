@@ -1,0 +1,12 @@
+Test-Command: debian/tests/windows i686
+Features: test-name=win32
+Depends: gpgrt-tools, libgpg-error-mingw-w64-dev, wine32, libgpg-error-dev, gcc-mingw-w64-i686, pkg-config
+Restrictions: skip-not-installable
+
+Test-Command: debian/tests/windows x86_64
+Features: test-name=win64
+Depends: gpgrt-tools, libgpg-error-mingw-w64-dev, wine64, libgpg-error-dev, gcc-mingw-w64-x86-64, pkg-config
+Restrictions: skip-not-installable
+
+Tests: build
+Depends: libgpg-error-dev, build-essential, pkg-config

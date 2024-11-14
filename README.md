@@ -9,3 +9,7 @@ Each version is in its own sub-folder. My notes are all marked with `NOTE(ywen)`
 ## Versions
 
 - `2.2.19-3ubuntu2.2`: The version used on Ubuntu 20.04 (with patches applied). Corresponding tag: [`applied/2.2.19-3ubuntu2.2`](https://git.launchpad.net/ubuntu/+source/gnupg2/tree/?h=applied/2.2.19-3ubuntu2.2).
+
+## `libgpg-error`
+
+`gnupg2` uses the GPG error library `libgpg-error`. The source files were obtained from [Launchpad `libgpg-error`](https://git.launchpad.net/ubuntu/+source/libgpg-error) and the version is [`applied/1.37-1`](https://git.launchpad.net/ubuntu/+source/libgpg-error/tree/?h=applied/1.37-1).
