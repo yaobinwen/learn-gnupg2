@@ -1,0 +1,31 @@
+From: Kristian Fiskerstrand <kf@sumptuouscapital.com>
+Date: Wed, 20 Dec 2017 21:12:01 +0100
+Subject: build: Increase libassuan min version to 2.5.0
+
+--
+assuan_sock_set_system_hooks is used unconditionally in gnupg since
+commit 9f641430dcdecbd7ee205d407cb19bb4262aa95d, and as such it requires
+libassuan 2.5.0 (function introduced in
+commit 90dc81682b13a7cf716a8a26b891051cbd4b0caf)
+
+For a detailed description see:
+https://lists.gnupg.org/pipermail/gnupg-devel/2017-December/033323.html
+
+(cherry picked from commit a6849888295f0e0872c948cd72a59374bb867777)
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 15739ee..6f87e10 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -59,7 +59,7 @@ NEED_LIBGCRYPT_API=1
+ NEED_LIBGCRYPT_VERSION=1.7.0
+ 
+ NEED_LIBASSUAN_API=2
+-NEED_LIBASSUAN_VERSION=2.4.3
++NEED_LIBASSUAN_VERSION=2.5.0
+ 
+ NEED_KSBA_API=1
+ NEED_KSBA_VERSION=1.3.4

@@ -1,0 +1,178 @@
+.TH GPG\-WKS\-CLIENT "1" "May 2017" "gpg-wks-client (GnuPG) 2.1.20" "User Commands"
+
+.SH NAME
+gpg\-wks\-client \- Client for the Web Key Service
+
+.SH SYNOPSIS
+.B gpg\-wks\-client
+.RB [ COMMAND ]
+.RB [ OPTIONS ]
+.RB [ ARGS ]
+
+.SH DESCRIPTION
+.B gpg\-wks\-client
+is a simple command line client for the Web Key Service.  The executable
+is usually located in /usr/lib/gnupg.
+.
+It allows a user to create a publication request and to respond to a
+received confirmation request.  Communication with the Web Key Service
+is done via email.
+.
+It also can lookup the fingerprint of a USER\-ID in the Web Key
+Directory.
+
+.SH COMMANDS
+.TP
+.B \-\-supported USER\-ID
+Check whether provider of the given USER\-ID supports the Web Key
+Service protocol, i.e. whether it has a Web Key Directory providing a
+submission address.
+.IP
+Similar to:
+.IP
+.nf
+.RS 12
+gpg\-connect\-agent \-\-dirmngr 'WKD_GET \-\-submission\-address \-\- USER\-ID' /bye
+.RE
+.fi
+.TP
+.B \-\-check USER\-ID
+Check whether a key is available, and whether the listed key is valid
+for the requested USER\-ID.
+.
+You might want to use
+.IP
+.nf
+.RS 12
+gpg \-v \-\-auto\-key\-locate=clear,wkd,nodefault \-\-locate\-key USER\-ID
+.RE
+.fi
+.IP
+instead.
+.TP
+.B \-\-create FINGERPRINT USER\-ID
+Create a publication request for the USER\-ID in the key with the given
+FINGERPRINT.  List all possible keys (including the fingerprint) for a
+USER\-ID with:
+.IP
+.nf
+.RS 12
+gpg --list-key USER\-ID
+.RE
+.fi
+.IP
+By default the publication request will be printed to STDOUT.  You can
+also write it to a file using the
+.B \-\-output
+option or send it using sendmail with the
+.B \-\-send
+option.
+.TP
+.B \-\-receive
+Receive a MIME confirmation request on STDIN and acknowledge it.
+.IP
+By default the confirmation response will be printed to STDOUT.  You can
+also write it to a file using the
+.B \-\-output
+option or send it using sendmail with the
+.B \-\-send
+option.
+.TP
+.B \-\-read
+Receive a plain text confirmation request. Similar to
+.BR \-\-receive ,
+but takes only the message body on STDIN.
+.TP
+.B \-\-version
+Show program version and some meta information.
+.TP
+.BR \-h ", " \-\-help
+Output a short usage information.
+.TP
+.B \-\-warranty
+Print warranty information.
+.TP
+.B \-\-dump-options
+Dump all available options and commands.
+
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-verbose
+Enable verbose output.
+.TP
+.BR \-q ", " \-\-quiet
+Be somewhat more quiet.
+.TP
+.B \-\-send
+Send the mail using sendmail.
+.TP
+.BR \-o ", " \-\-output " \fIFILE\fR"
+Write the mail to FILE.
+.TP
+.BI \-\-status\-fd " FD"
+Write status info to this FD.
+.TP
+.B \-\-debug
+Set  debugging  flags.  All flags are or-ed and flags may be given in C
+syntax (e.g. 0x0042) or as a comma separated list of flag names.  To get
+a list of all supported flags the single word "help" can be used.
+.TP
+.BI \-\-gpg " GPG"
+Use the specified command instead of
+.BR gpg .
+.TP
+.BI \-\-fake\-submission\-addr " MAILADDR"
+Send mail to MAILADDR instead of the submission address queried through
+Web Key Service.
+
+.SH EXAMPLES
+.SS Send a publication request
+First find the fingerprint (a long string of hex digits) of the key you
+want to publish:
+.P
+.nf
+.RS 4
+gpg \-\-list\-key "Alice <alice@example.com>"
+.RE
+.fi
+.P
+Now create and send the publication request:
+.P
+.nf
+.RS 4
+/usr/lib/gnupg/gpg\-wks\-client \-\-create \-\-send 0123456789ABCDEF0123456789ABCDEF01234567 "Alice <alice@example.com>"
+.RE
+.fi
+.P
+Instead of \fI"Alice <alice@example.com>"\fR you can also just give \fIalice@example.com\fR.
+.P
+.SS Confirm a confirmation request
+Paste the full mail containing the confirmation request (including
+headers) you got from the Web Key Service on STDIN after starting:
+.P
+.nf
+.RS 4
+/usr/lib/gnupg/gpg\-wks\-client \-\-receive \-\-send
+.RE
+.fi
+
+.SH SEE ALSO
+.IP \(em 4
+Latest draft for the protocol:
+<https://tools.ietf.org/html/draft-koch-openpgp-webkey-service>
+.IP \(em 4
+GnuPG on Web Key Service:
+<https://wiki.gnupg.org/WKS>
+
+.SH BUGS
+Please report bugs to <https://dev.gnupg.org>.
+
+.SH COPYRIGHT
+Copyright \(co 2017 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>
+
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+This manpage was written by \fBStefan Bühler\fR for the Debian
+distribution (but may be used by others).

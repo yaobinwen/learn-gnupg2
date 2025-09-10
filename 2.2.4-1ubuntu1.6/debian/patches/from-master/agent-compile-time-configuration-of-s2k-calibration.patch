@@ -1,0 +1,72 @@
+From: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date: Fri, 8 Sep 2017 17:08:57 -0400
+Subject: agent: compile-time configuration of s2k calibration.
+
+* configure.ac: add --with-agent-s2k-calibration=MSEC, introduces
+AGENT_S2K_CALIBRATION (measured in milliseconds)
+* agent/protect.c (calibrate_s2k_count): Calibrate based on
+AGENT_S2K_CALIBRATION.
+
+Signed-off-by: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+GnuPG-bug-id: 3399
+(cherry picked from commit 926d07c5fa05de05caef3a72b6fe156606ac0549)
+---
+ agent/protect.c |  6 +++---
+ configure.ac    | 10 +++++++++-
+ 2 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/agent/protect.c b/agent/protect.c
+index 7b5abf2..16ae715 100644
+--- a/agent/protect.c
++++ b/agent/protect.c
+@@ -163,7 +163,7 @@ calibrate_s2k_count_one (unsigned long count)
+ 
+ 
+ /* Measure the time we need to do the hash operations and deduce an
+-   S2K count which requires about 100ms of time.  */
++   S2K count which requires roughly some targeted amount of time.  */
+ static unsigned long
+ calibrate_s2k_count (void)
+ {
+@@ -175,11 +175,11 @@ calibrate_s2k_count (void)
+       ms = calibrate_s2k_count_one (count);
+       if (opt.verbose > 1)
+         log_info ("S2K calibration: %lu -> %lums\n", count, ms);
+-      if (ms > 100)
++      if (ms > AGENT_S2K_CALIBRATION)
+         break;
+     }
+ 
+-  count = (unsigned long)(((double)count / ms) * 100);
++  count = (unsigned long)(((double)count / ms) * AGENT_S2K_CALIBRATION);
+   count /= 1024;
+   count *= 1024;
+   if (count < 65536)
+diff --git a/configure.ac b/configure.ac
+index 87b0c64..6541aaf 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -116,7 +116,6 @@ use_tls_library=no
+ large_secmem=no
+ show_tor_support=no
+ 
+-
+ GNUPG_BUILD_PROGRAM(gpg, yes)
+ GNUPG_BUILD_PROGRAM(gpgsm, yes)
+ # The agent is a required part and can't be disabled anymore.
+@@ -244,6 +243,15 @@ fi
+ AC_DEFINE_UNQUOTED(SECMEM_BUFFER_SIZE,$SECMEM_BUFFER_SIZE,
+                    [Size of secure memory buffer])
+ 
++AC_MSG_CHECKING([calibrated passphrase-stretching (s2k) duration])
++AC_ARG_WITH(agent-s2k-calibration,
++              AC_HELP_STRING([--with-agent-s2k-calibration=MSEC],
++                             [calibrate passphrase stretching (s2k) to MSEC milliseconds]),
++              agent_s2k_calibration=$withval, agent_s2k_calibration=100)
++AC_MSG_RESULT($agent_s2k_calibration milliseconds)
++AC_DEFINE_UNQUOTED(AGENT_S2K_CALIBRATION, $agent_s2k_calibration,
++                   [Agent s2k calibration time (ms)])
++
+ AC_MSG_CHECKING([whether to enable trust models])
+ AC_ARG_ENABLE(trust-models,
+               AC_HELP_STRING([--disable-trust-models],

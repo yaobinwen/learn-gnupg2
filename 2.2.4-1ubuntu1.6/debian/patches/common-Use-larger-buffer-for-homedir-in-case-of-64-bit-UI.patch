@@ -1,0 +1,33 @@
+From: Werner Koch <wk@gnupg.org>
+Date: Wed, 20 Dec 2017 15:37:29 +0100
+Subject: common: Use larger buffer for homedir in case of 64 bit UIDs.
+
+* common/homedir.c (_gnupg_socketdir_internal): Enlarge PREFIX by 6
+bytes for "/gnupg".
+--
+
+The temporary buffer was to short for the extra "/gnupg".  However the
+20 bytes for the UID is large enough for all 32 bit UIDs and would
+only fail (detected) if  a 64 bit UID is used.
+
+Fixes-commit: 17efcd2a2acdc3b7f00711272aa51e5be2476921
+Reported-by: Rainer Perske.
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit 290348e349e8d56a856f187a08e913f2ed525b3c)
+---
+ common/homedir.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/common/homedir.c b/common/homedir.c
+index a598900..65cf50f 100644
+--- a/common/homedir.c
++++ b/common/homedir.c
+@@ -554,7 +554,7 @@ _gnupg_socketdir_internal (int skip_checks, unsigned *r_info)
+   };
+   int i;
+   struct stat sb;
+-  char prefix[13 + 1 + 20 + 6 + 1];
++  char prefix[19 + 1 + 20 + 6 + 1];
+   const char *s;
+   char *name = NULL;
+ 

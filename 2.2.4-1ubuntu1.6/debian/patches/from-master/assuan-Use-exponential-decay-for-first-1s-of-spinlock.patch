@@ -1,0 +1,71 @@
+From: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date: Wed, 8 Nov 2017 16:26:40 +0100
+Subject: assuan: Use exponential decay for first 1s of spinlock.
+
+* common/asshelp.c (wait_for_sock): instead of checking the socket
+every second, we check 10 times in the first second (with exponential
+decay).
+--
+
+This cuts the wall clock time for the standard test suite roughly by
+half.
+
+GnuPG-bug-id: 3490
+Signed-off-by: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+(cherry picked from commit 149041b0b917f4298239fe18b5ebd5ead71584a6)
+---
+ common/asshelp.c | 31 ++++++++++++++++++++++++++-----
+ 1 file changed, 26 insertions(+), 5 deletions(-)
+
+diff --git a/common/asshelp.c b/common/asshelp.c
+index 68a41be..76f812d 100644
+--- a/common/asshelp.c
++++ b/common/asshelp.c
+@@ -310,14 +310,32 @@ unlock_spawning (lock_spawn_t *lock, const char *name)
+ static gpg_error_t
+ wait_for_sock (int secs, const char *name, const char *sockname, int verbose, assuan_context_t ctx, int *did_success_msg)
+ {
+-  int i;
+   gpg_error_t err = 0;
+-  for (i=0; i < secs; i++)
++  int target_us = secs * 1000000;
++  int elapsed_us = 0;
++  /*
++   * 977us * 1024 = just a little more than 1s.
++   * so we will double this timeout 10 times in the first
++   * second, and then switch over to 1s checkins.
++   */
++  int next_sleep_us = 977;
++  int lastalert = secs+1;
++  int secsleft;
++
++  while (elapsed_us < target_us)
+     {
+       if (verbose)
+-        log_info (_("waiting for the %s to come up ... (%ds)\n"),
+-                  name, secs - i);
+-      gnupg_sleep (1);
++        {
++          secsleft = (target_us - elapsed_us)/1000000;
++          if (secsleft < lastalert)
++            {
++              log_info (_("waiting for the %s to come up ... (%ds)\n"),
++                        name, secsleft);
++              lastalert = secsleft;
++            }
++        }
++      gnupg_usleep (next_sleep_us);
++      elapsed_us += next_sleep_us;
+       err = assuan_socket_connect (ctx, sockname, 0, 0);
+       if (!err)
+         {
+@@ -329,6 +347,9 @@ wait_for_sock (int secs, const char *name, const char *sockname, int verbose, as
+             }
+           break;
+         }
++      next_sleep_us *= 2;
++      if (next_sleep_us > 1000000)
++        next_sleep_us = 1000000;
+     }
+   return err;
+ }

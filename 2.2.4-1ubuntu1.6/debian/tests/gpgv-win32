@@ -1,0 +1,54 @@
+#!/bin/sh
+
+set -e
+
+export GNUPGHOME=$(mktemp -d)
+
+arch=$(dpkg --print-architecture)
+
+case "$arch" in
+    amd64)
+        if ! dpkg --print-foreign-architectures | grep -Fqx i386; then
+            echo "I: setting up multiarch"
+            dpkg --add-architecture i386
+            apt update # FIXME you might want to try this up to some N times to avoid failures on temporary network issues
+        fi
+    ;;
+    arm64)
+        if ! dpkg --print-foreign-architectures | grep -Fqx armhf; then
+            echo "I: setting up multiarch"
+            dpkg --add-architecture armhf
+            apt update # FIXME you might want to try this up to some N times to avoid failures on temporary network issues
+        fi
+    ;;
+    i386|armel|armhf|powerpc)
+        : nothing, tests should just work
+        ;;
+    *)
+        echo "I: skipping tests on $arch; only works on amd64, i386, arm64, armhf, armel, and powerpc"
+        exit
+        ;;
+esac
+
+if ! dpkg-query --status wine32 | grep -Fqx 'Status: install ok installed'; then
+    DEBIAN_FRONTEND=noninteractive apt install -qy wine32 # FIXME ditto
+fi
+
+echo 'no-allow-loopback-pinentry:16' | gpgconf --change-options gpg-agent
+
+# Generate a minimal signing key:
+gpg2 --batch --debug-quick-random --pinentry-mode loopback --passphrase '' --quick-gen-key   'Test key for gpgv-win32 <test-key@example.com>'
+
+gpg2 -o "$GNUPGHOME/key.gpg" --export test-key@example.com
+
+# Sign this very script
+rm -f "${0}.gpg"
+gpg2 --output "${0}.gpg" --detach-sign "${0}"
+
+# Verify using gpgv
+gpgv2 --keyring "$GNUPGHOME/key.gpg" "${0}.gpg" "${0}"
+
+# Verify using gpgv.exe
+wine /usr/share/win32/gpgv.exe --keyring "Z:\\\\${GNUPGHOME}/key.gpg" "Z:\\\\$(pwd)/${0}.gpg" "Z:\\\\$(pwd)/${0}"
+
+rm -rf "$GNUPGHOME"

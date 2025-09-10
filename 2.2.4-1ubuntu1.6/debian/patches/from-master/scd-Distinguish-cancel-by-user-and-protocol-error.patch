@@ -1,0 +1,68 @@
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Wed, 20 Sep 2017 10:06:43 +0900
+Subject: scd: Distinguish cancel by user and protocol error.
+
+* scd/apdu.h (SW_HOST_CANCELLED): New.
+* scd/apdu.c (host_sw_string): Support SW_HOST_CANCELLED.
+(pcsc_error_to_sw): Return SW_HOST_CANCELLED for PCSC_E_CANCELLED.
+* scd/iso7816.c (map_sw): Return GPG_ERR_INV_RESPONSE for
+SW_HOST_ABORTED and GPG_ERR_CANCELED for SW_HOST_CANCELLED.
+
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+(cherry picked from commit 2396055c096884d521c26b76f26263a146207c24)
+---
+ scd/apdu.c    | 3 ++-
+ scd/apdu.h    | 3 ++-
+ scd/iso7816.c | 3 ++-
+ 3 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/scd/apdu.c b/scd/apdu.c
+index c50afbd..49c222a 100644
+--- a/scd/apdu.c
++++ b/scd/apdu.c
+@@ -496,6 +496,7 @@ host_sw_string (long err)
+     case SW_HOST_ABORTED: return "aborted";
+     case SW_HOST_NO_PINPAD: return "no pinpad";
+     case SW_HOST_ALREADY_CONNECTED: return "already connected";
++    case SW_HOST_CANCELLED: return "cancelled";
+     default: return "unknown host status error";
+     }
+ }
+@@ -602,7 +603,7 @@ pcsc_error_to_sw (long ec)
+     {
+     case 0:  rc = 0; break;
+ 
+-    case PCSC_E_CANCELLED:           rc = SW_HOST_ABORTED; break;
++    case PCSC_E_CANCELLED:           rc = SW_HOST_CANCELLED; break;
+     case PCSC_E_NO_MEMORY:           rc = SW_HOST_OUT_OF_CORE; break;
+     case PCSC_E_TIMEOUT:             rc = SW_HOST_CARD_IO_ERROR; break;
+     case PCSC_E_NO_SERVICE:
+diff --git a/scd/apdu.h b/scd/apdu.h
+index 6751e8c..8a0d4bd 100644
+--- a/scd/apdu.h
++++ b/scd/apdu.h
+@@ -71,7 +71,8 @@ enum {
+   SW_HOST_NO_READER     = 0x1000c,
+   SW_HOST_ABORTED       = 0x1000d,
+   SW_HOST_NO_PINPAD     = 0x1000e,
+-  SW_HOST_ALREADY_CONNECTED = 0x1000f
++  SW_HOST_ALREADY_CONNECTED = 0x1000f,
++  SW_HOST_CANCELLED     = 0x10010
+ };
+ 
+ struct dev_list;
+diff --git a/scd/iso7816.c b/scd/iso7816.c
+index 081b080..29208c2 100644
+--- a/scd/iso7816.c
++++ b/scd/iso7816.c
+@@ -93,8 +93,9 @@ map_sw (int sw)
+     case SW_HOST_CARD_IO_ERROR:  ec = GPG_ERR_EIO; break;
+     case SW_HOST_GENERAL_ERROR:  ec = GPG_ERR_GENERAL; break;
+     case SW_HOST_NO_READER:      ec = GPG_ERR_ENODEV; break;
+-    case SW_HOST_ABORTED:        ec = GPG_ERR_CANCELED; break;
++    case SW_HOST_ABORTED:        ec = GPG_ERR_INV_RESPONSE; break;
+     case SW_HOST_NO_PINPAD:      ec = GPG_ERR_NOT_SUPPORTED; break;
++    case SW_HOST_CANCELLED:      ec = GPG_ERR_CANCELED; break;
+ 
+     default:
+       if ((sw & 0x010000))

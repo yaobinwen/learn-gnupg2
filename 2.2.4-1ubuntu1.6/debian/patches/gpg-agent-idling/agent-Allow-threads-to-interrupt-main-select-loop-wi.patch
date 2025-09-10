@@ -1,0 +1,93 @@
+From: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date: Tue, 1 Nov 2016 00:45:23 -0400
+Subject: agent: Allow threads to interrupt main select loop with SIGCONT.
+
+* agent/gpg-agent.c (interrupt_main_thread_loop): New function on
+non-windows platforms, allows other threads to interrupt the main loop
+if there's something that the main loop might be interested in.
+
+--
+
+For example, the main loop might be interested in changes in program
+state that affect the timers it expects to see.
+
+I don't know how to do this on Windows platforms, but i welcome any
+proposed improvements.
+
+Signed-off-by: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+---
+ agent/agent.h     |  1 +
+ agent/gpg-agent.c | 18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/agent/agent.h b/agent/agent.h
+index c2d8579..ba4906f 100644
+--- a/agent/agent.h
++++ b/agent/agent.h
+@@ -361,6 +361,7 @@ void *get_agent_scd_notify_event (void);
+ #endif
+ void agent_sighup_action (void);
+ int map_pk_openpgp_to_gcry (int openpgp_algo);
++void interrupt_main_thread_loop (void);
+ 
+ /*-- command.c --*/
+ gpg_error_t agent_inq_pinentry_launched (ctrl_t ctrl, unsigned long pid,
+diff --git a/agent/gpg-agent.c b/agent/gpg-agent.c
+index 7713b8a..18960e5 100644
+--- a/agent/gpg-agent.c
++++ b/agent/gpg-agent.c
+@@ -415,6 +415,9 @@ static int have_homedir_inotify;
+  * works reliable.  */
+ static int reliable_homedir_inotify;
+ 
++/* Record the pid of the main thread, for easier signalling */
++static pid_t main_thread_pid = (pid_t)(-1);
++
+ /* Number of active connections.  */
+ static int active_connections;
+ 
+@@ -2116,7 +2119,7 @@ get_agent_scd_notify_event (void)
+                                  GetCurrentProcess(), &h2,
+                                  EVENT_MODIFY_STATE|SYNCHRONIZE, TRUE, 0))
+         {
+-          log_error ("setting syncronize for scd notify event failed: %s\n",
++          log_error ("setting synchronize for scd notify event failed: %s\n",
+                      w32_strerror (-1) );
+           CloseHandle (h);
+         }
+@@ -2459,6 +2462,10 @@ handle_signal (int signo)
+       agent_sigusr2_action ();
+       break;
+ 
++      /* nothing to do here, just take an extra cycle on the select loop */
++    case SIGCONT:
++      break;
++
+     case SIGTERM:
+       if (!shutdown_pending)
+         log_info ("SIGTERM received - shutting down ...\n");
+@@ -2797,6 +2804,13 @@ start_connection_thread_ssh (void *arg)
+ }
+ 
+ 
++void interrupt_main_thread_loop (void)
++{
++#ifndef HAVE_W32_SYSTEM
++  kill (main_thread_pid, SIGCONT);
++#endif
++}
++
+ /* helper function for readability: test whether a given struct
+    timespec is set to all-zeros */
+ static inline int
+@@ -2866,8 +2880,10 @@ handle_connections (gnupg_fd_t listen_fd,
+   npth_sigev_add (SIGUSR1);
+   npth_sigev_add (SIGUSR2);
+   npth_sigev_add (SIGINT);
++  npth_sigev_add (SIGCONT);
+   npth_sigev_add (SIGTERM);
+   npth_sigev_fini ();
++  main_thread_pid = getpid ();
+ #else
+ # ifdef HAVE_W32CE_SYSTEM
+   /* Use a dummy event. */

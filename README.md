@@ -8,6 +8,7 @@ Each version is in its own sub-folder. My notes are all marked with `NOTE(ywen)`
 
 ## Versions
 
+- `2.2.4-1ubuntu1.6`: The version used on Ubuntu 18.04 (with patches applied). Corresponding tag: [`applied/2.2.4-1ubuntu1.6`](https://git.launchpad.net/ubuntu/+source/gnupg2/tree/?h=applied/2.2.4-1ubuntu1.6)
 - `2.2.19-3ubuntu2.2`: The version used on Ubuntu 20.04 (with patches applied). Corresponding tag: [`applied/2.2.19-3ubuntu2.2`](https://git.launchpad.net/ubuntu/+source/gnupg2/tree/?h=applied/2.2.19-3ubuntu2.2).
 
 ## `libgpg-error`

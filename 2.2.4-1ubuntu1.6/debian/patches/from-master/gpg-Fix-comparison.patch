@@ -1,0 +1,26 @@
+From: "Neal H. Walfield" <neal@g10code.com>
+Date: Fri, 6 Oct 2017 11:51:39 +0200
+Subject: gpg: Fix comparison.
+
+* g10/gpgcompose.c (literal_name): Complain if passed zero arguments,
+not one or fewer.
+
+Signed-off-by: Neal H. Walfield <neal@walfield.org>
+(cherry picked from commit 1ed21eee79749b976b4a935f2279b162634e9c5e)
+---
+ g10/gpgcompose.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/g10/gpgcompose.c b/g10/gpgcompose.c
+index 2b42bfb..8c156d2 100644
+--- a/g10/gpgcompose.c
++++ b/g10/gpgcompose.c
+@@ -2746,7 +2746,7 @@ literal_name (const char *option, int argc, char *argv[], void *cookie)
+ {
+   struct litinfo *li = cookie;
+ 
+-  if (argc <= 1)
++  if (argc <= 0)
+     log_fatal ("Usage: %s NAME\n", option);
+ 
+   if (strlen (argv[0]) > 255)

@@ -1,0 +1,3 @@
+Tests: simple-tests
+Depends: gnupg2, gpgv2
+Restrictions: allow-stderr

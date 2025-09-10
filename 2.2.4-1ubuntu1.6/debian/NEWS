@@ -1,0 +1,22 @@
+gnupg2 (2.2.4-1ubuntu1.1) bionic-security; urgency=medium
+
+  gpg: The MDC encryption mode is now always used regardless of the
+  cipher algorithm or any preferences.  For testing --rfc2440 can
+  be used to create a message without an MDC.
+
+  gpg: Decryption of messages not using the MDC mode will now lead
+  to a hard failure even if a legacy cipher algorithm was used.
+  The option --ignore-mdc-error can be used to turn this failure into a
+  warning.  Take care: Never use that option unconditionally or
+  without a prior warning.
+
+ -- Steve Beattie <sbeattie@ubuntu.com>  Sun, 10 Jun 2018 22:09:09 -0700
+
+gnupg2 (2.1.11-7+exp1) experimental; urgency=medium
+
+  The gnupg package now provides the "modern" version of GnuPG.
+
+  Please read /usr/share/doc/gnupg/README.Debian for details about the
+  transition from "classic" to "modern"
+
+ -- Daniel Kahn Gillmor <dkg@fifthhorseman.net>  Wed, 30 Mar 2016 09:59:35 -0400

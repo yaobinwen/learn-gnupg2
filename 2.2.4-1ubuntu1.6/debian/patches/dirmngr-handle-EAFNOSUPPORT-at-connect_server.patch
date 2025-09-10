@@ -1,0 +1,57 @@
+From ca937cf390662b830d4fc5d295e69b24b1778050 Mon Sep 17 00:00:00 2001
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Mon, 13 Jul 2020 10:00:58 +0900
+Subject: [PATCH] dirmngr: Handle EAFNOSUPPORT at connect_server.
+
+* dirmngr/http.c (connect_server): Skip server with EAFNOSUPPORT.
+
+--
+
+GnuPG-bug-id: 4977
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+
+Origin: backport, https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=commit;h=109d16e8f644
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1910432
+---
+
+Index: gnupg2/dirmngr/http.c
+===================================================================
+--- gnupg2.orig/dirmngr/http.c
++++ gnupg2/dirmngr/http.c
+@@ -2844,6 +2844,8 @@ connect_server (const char *server, unsi
+   int hostfound = 0;
+   int anyhostaddr = 0;
+   int srv, connected;
++  int ignore_v4 = (flags & HTTP_FLAG_IGNORE_IPv4);
++  int ignore_v6 = (flags & HTTP_FLAG_IGNORE_IPv6);
+   gpg_error_t last_err = 0;
+   struct srventry *serverlist = NULL;
+
+@@ -2930,9 +2932,9 @@ connect_server (const char *server, unsi
+
+       for (ai = aibuf; ai && !connected; ai = ai->next)
+         {
+-          if (ai->family == AF_INET && (flags & HTTP_FLAG_IGNORE_IPv4))
++          if (ai->family == AF_INET && ignore_v4)
+             continue;
+-          if (ai->family == AF_INET6 && (flags & HTTP_FLAG_IGNORE_IPv6))
++          if (ai->family == AF_INET6 && ignore_v6)
+             continue;
+
+           if (sock != ASSUAN_INVALID_FD)
+@@ -2940,6 +2942,15 @@ connect_server (const char *server, unsi
+           sock = my_sock_new_for_addr (ai->addr, ai->socktype, ai->protocol);
+           if (sock == ASSUAN_INVALID_FD)
+             {
++              if (errno == EAFNOSUPPORT)
++                {
++                  if (ai->family == AF_INET)
++                    ignore_v4 = 1;
++                  if (ai->family == AF_INET6)
++                    ignore_v6 = 1;
++                  continue;
++                }
++
+               err = gpg_err_make (default_errsource,
+                                   gpg_err_code_from_syserror ());
+               log_error ("error creating socket: %s\n", gpg_strerror (err));

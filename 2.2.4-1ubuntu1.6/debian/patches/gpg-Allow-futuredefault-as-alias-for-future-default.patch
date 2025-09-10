@@ -1,0 +1,61 @@
+From: Werner Koch <wk@gnupg.org>
+Date: Mon, 1 Jan 2018 14:59:30 +0100
+Subject: gpg: Allow "futuredefault" as alias for "future-default".
+
+* g10/keygen.c (parse_key_parameter_string): Allow "futuredefault" and
+use case-insensitive matching
+(quick_generate_keypair): Ditto.
+(parse_algo_usage_expire): Ditto.
+--
+
+The man page is sometimes rendered in a way that the hyphen may be
+not be considered as part of the string.  And while at it we also
+allow case-insensitivity.
+
+GnuPG-bug-id: 3655
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit 4d3c500f4793eb263940ff5ef87ec4ead63c9b4b)
+---
+ g10/keygen.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/g10/keygen.c b/g10/keygen.c
+index 77d1b84..dc0f3f8 100644
+--- a/g10/keygen.c
++++ b/g10/keygen.c
+@@ -3152,9 +3152,10 @@ parse_key_parameter_string (const char *string, int part,
+     *r_subcurve = NULL;
+ 
+   if (!string || !*string
+-      || !strcmp (string, "default") || !strcmp (string, "-"))
++      || !ascii_strcasecmp (string, "default") || !strcmp (string, "-"))
+     string = get_default_pubkey_algo ();
+-  else if (!strcmp (string, "future-default"))
++  else if (!ascii_strcasecmp (string, "future-default")
++           || !ascii_strcasecmp (string, "futuredefault"))
+     string = FUTURE_STD_KEY_PARAM;
+ 
+   primary = xstrdup (string);
+@@ -3983,9 +3984,10 @@ quick_generate_keypair (ctrl_t ctrl, const char *uid, const char *algostr,
+   if (!*expirestr || strcmp (expirestr, "-") == 0)
+     expirestr = default_expiration_interval;
+ 
+-  if ((!*algostr || !strcmp (algostr, "default")
+-       || !strcmp (algostr, "future-default"))
+-      && (!*usagestr || !strcmp (usagestr, "default")
++  if ((!*algostr || !ascii_strcasecmp (algostr, "default")
++       || !ascii_strcasecmp (algostr, "future-default")
++       || !ascii_strcasecmp (algostr, "futuredefault"))
++      && (!*usagestr || !ascii_strcasecmp (usagestr, "default")
+           || !strcmp (usagestr, "-")))
+     {
+       /* Use default key parameters.  */
+@@ -4927,7 +4929,7 @@ parse_algo_usage_expire (ctrl_t ctrl, int for_subkey,
+ 
+   /* Parse the usage string.  */
+   if (!usagestr || !*usagestr
+-      || !strcmp (usagestr, "default") || !strcmp (usagestr, "-"))
++      || !ascii_strcasecmp (usagestr, "default") || !strcmp (usagestr, "-"))
+     ; /* Keep usage from parse_key_parameter_string.  */
+   else if ((wantuse = parse_usagestr (usagestr)) != -1)
+     use = wantuse;

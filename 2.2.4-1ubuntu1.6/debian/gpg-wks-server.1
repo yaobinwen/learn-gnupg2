@@ -1,0 +1,180 @@
+.TH GPG\-WKS\-SERVER "1" "May 2017" "gpg-wks-server (GnuPG) 2.1.20" "User Commands"
+
+.SH NAME
+gpg\-wks\-server \- Server for the Web Key Service
+
+.SH SYNOPSIS
+.B gpg\-wks\-server
+.RB [ COMMAND ]
+.RB [ OPTIONS ]
+.RB [ ARGS ]
+
+.SH DESCRIPTION
+.B gpg\-wks\-server
+is a server for the Web Key Service.  It can handle incoming mails with
+the
+.B \-\-receive
+command.
+.P
+See the EXAMPLES section for procmail and crontab configurations.
+.P
+You also need a webserver configured to alias requests to
+.I /.well\-known/openpgp/
+and below to the
+.I /var/lib/gnupg/wks/<wkd-domain>/
+directory.
+
+.SH COMMANDS
+.TP
+.B \-\-receive
+Receive a submission or confirmation.
+.TP
+.B \-\-cron
+Run regular jobs.
+.TP
+.B \-\-list\-domains
+List configured domains, and checks some file and directory permissions.
+.TP
+.B \-\-version
+Show program version and some meta information.
+.TP
+.BR \-h ", " \-\-help
+Output a short usage information.
+.TP
+.B \-\-warranty
+Print warranty information.
+.TP
+.B \-\-dump-options
+Dump all available options and commands.
+
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-verbose
+Enable verbose output.
+.TP
+.BR \-q ", " \-\-quiet
+Be somewhat more quiet.
+.TP
+.B \-\-send
+Send the mail using sendmail.
+.TP
+.BR \-o ", " \-\-output " \fIFILE\fR"
+Write the mail to FILE.
+.TP
+.BI \-\-from " ADDR"
+Use ADDR as the default sender.
+.TP
+.BI \-\-header " NAME=VALUE"
+Add "NAME: VALUE" as header to all mails.
+.IP
+Can be used to add a header for loop detections, see procmail example.
+.TP
+.B \-\-debug
+Set  debugging  flags.  All flags are or-ed and flags may be given in C
+syntax (e.g. 0x0042) or as a comma separated list of flag names.  To get
+a list of all supported flags the single word "help" can be used.
+.TP
+.BI \-\-gpg " GPG"
+Use the specified command instead of
+.BR gpg .
+
+.SH DIRECTORIES
+.TP
+.B /var/lib/gnupg/wks/
+Contains a subdirectory for each domain to run the server for.  Each
+subdirectory is supposed to contain what should show up on
+.BR https://.../.well\-known/openpgp/ .
+.IP
+The user running
+.B gpg\-wks\-server
+needs write access to these subdirectories.
+
+.SH EXAMPLES
+.SS ~/.procmailrc
+Store received emails in
+.B ~/Mail/
+(create it manually first), uses \fIFrom: key\-submission@example.com\fR and
+\fIX\-WKS\-Loop: example.com\fR as loop detection:
+.P
+.nf
+.RS 4
+MAILDIR=$HOME/Mail
+LOGFILE=$HOME/Mail/from
+LOCKFILE=$HOME/Mail/.lockmail
+VERBOSE=yes
+
+# filter out FROM_DAEMON mails (bounces, ...) into separate mailbox
+:0
+* ^FROM_DAEMON
+from\-daemon/
+
+# archive (copy!) all "normal" mails
+:0 c
+archive/
+
+# if not in a loop: handle mails with gpg\-wks\-server
+:0 w
+* !^From: key\-submission@example.com
+* !^X\-WKS\-Loop: example.com
+|gpg\-wks\-server \-v \-\-receive \\
+    \-\-header X\-WKS\-Loop=example.com \\
+    \-\-from key\-submission@example.com \-\-send
+
+# if handling failed: store in separate mailbox
+:0 e
+cruft/
+.RE
+.fi
+
+.SS ~/.forward
+In case procmail is not used automatically the following
+.B ~/.forward
+file might be useful:
+.P
+.nf
+.RS 4
+"|exec /usr/bin/procmail || exit 75"
+.RE
+.fi
+.P
+The double quotes are supposed to be included in the file!
+
+.SS crontab
+You should run the
+.B \-\-cron
+command once a day.  Edit the crontab with
+.P
+.nf
+.RS 4
+crontab \-e
+.RE
+.fi
+.P
+and append the following line:
+.P
+.nf
+.RS 4
+42 3 * * * gpg\-wks\-server \-\-cron
+.RE
+.fi
+
+.SH SEE ALSO
+.IP \(em 4
+Latest draft for the Web Key Service protocol:
+<https://tools.ietf.org/html/draft-koch-openpgp-webkey-service>
+.IP \(em 4
+GnuPG on Web Key Service:
+<https://wiki.gnupg.org/WKS>
+
+.SH BUGS
+Please report bugs to <https://dev.gnupg.org>.
+
+.SH COPYRIGHT
+Copyright \(co 2017 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>
+
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+This manpage was written by \fBStefan Bühler\fR for the Debian
+distribution (but may be used by others).

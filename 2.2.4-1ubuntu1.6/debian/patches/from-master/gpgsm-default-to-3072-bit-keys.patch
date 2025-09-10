@@ -1,0 +1,130 @@
+From: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date: Thu, 7 Sep 2017 18:39:37 -0400
+Subject: gpgsm: default to 3072-bit keys.
+
+* doc/gpgsm.texi, doc/howto-create-a-server-cert.texi: : update
+default to 3072 bits.
+* sm/certreqgen-ui.c (gpgsm_gencertreq_tty): update default to
+3072 bits.
+* sm/certreqgen.c (proc_parameters): update default to 3072 bits.
+* sm/gpgsm.c (main): print correct default_pubkey_algo.
+
+--
+
+3072-bit RSA is widely considered to be 128-bit-equivalent security.
+This is a sensible default in 2017.
+
+Signed-off-by: Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+
+(cherry picked from commit 7955262151a5c755814dd23414e6804f79125355)
+---
+ doc/gpgsm.texi                      |  2 +-
+ doc/howto-create-a-server-cert.texi | 14 +++++++-------
+ sm/certreqgen-ui.c                  |  2 +-
+ sm/certreqgen.c                     |  4 ++--
+ sm/gpgsm.c                          |  2 +-
+ 5 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/doc/gpgsm.texi b/doc/gpgsm.texi
+index 5d79ce5..bdc6b87 100644
+--- a/doc/gpgsm.texi
++++ b/doc/gpgsm.texi
+@@ -1073,7 +1073,7 @@ key. The algorithm must be capable of signing.  This is a required
+ parameter.  The only supported value for @var{algo} is @samp{rsa}.
+ 
+ @item Key-Length: @var{nbits}
+-The requested length of a generated key in bits.  Defaults to 2048.
++The requested length of a generated key in bits.  Defaults to 3072.
+ 
+ @item Key-Grip: @var{hexstring}
+ This is optional and used to generate a CSR or certificate for an
+diff --git a/doc/howto-create-a-server-cert.texi b/doc/howto-create-a-server-cert.texi
+index 55f1a91..30e28bd 100644
+--- a/doc/howto-create-a-server-cert.texi
++++ b/doc/howto-create-a-server-cert.texi
+@@ -31,14 +31,14 @@ Let's continue:
+ 
+ @cartouche
+ @example
+-  What keysize do you want? (2048)
+-  Requested keysize is 2048 bits
++  What keysize do you want? (3072)
++  Requested keysize is 3072 bits
+ @end example
+ @end cartouche
+ 
+-Hitting enter chooses the default RSA key size of 2048 bits.  Smaller
+-keys are too weak on the modern Internet.  If you choose a larger
+-(stronger) key, your server will need to do more work.
++Hitting enter chooses the default RSA key size of 3072 bits.  Keys
++smaller than 2048 bits are too weak on the modern Internet.  If you
++choose a larger (stronger) key, your server will need to do more work.
+ 
+ @cartouche
+ @example
+@@ -124,7 +124,7 @@ request:
+ @example
+   These parameters are used:
+       Key-Type: RSA
+-      Key-Length: 2048
++      Key-Length: 3072
+       Key-Usage: sign, encrypt
+       Name-DN: CN=example.com
+       Name-DNS: example.com
+@@ -224,7 +224,7 @@ To see the content of your certificate, you may now enter:
+             aka: (dns-name example.com)
+             aka: (dns-name www.example.com)
+        validity: 2015-07-01 16:20:51 through 2016-07-01 16:20:51
+-       key type: 2048 bit RSA
++       key type: 3072 bit RSA
+       key usage: digitalSignature keyEncipherment
+   ext key usage: clientAuth (suggested), serverAuth (suggested), [...]
+     fingerprint: 0F:9C:27:B2:DA:05:5F:CB:33:D8:19:E9:65:B9:4F:BD:B1:98:CC:57
+diff --git a/sm/certreqgen-ui.c b/sm/certreqgen-ui.c
+index 9772a3b..4f8a1ac 100644
+--- a/sm/certreqgen-ui.c
++++ b/sm/certreqgen-ui.c
+@@ -138,7 +138,7 @@ gpgsm_gencertreq_tty (ctrl_t ctrl, estream_t output_stream)
+   unsigned int nbits;
+   int minbits = 1024;
+   int maxbits = 4096;
+-  int defbits = 2048;
++  int defbits = 3072;
+   const char *keyusage;
+   char *subject_name;
+   membuf_t mb_email, mb_dns, mb_uri, mb_result;
+diff --git a/sm/certreqgen.c b/sm/certreqgen.c
+index 4431870..1d610c1 100644
+--- a/sm/certreqgen.c
++++ b/sm/certreqgen.c
+@@ -26,7 +26,7 @@
+      $ cat >foo <<EOF
+      %echo Generating a standard key
+      Key-Type: RSA
+-     Key-Length: 2048
++     Key-Length: 3072
+      Name-DN: CN=test cert 1,OU=Aegypten Project,O=g10 Code GmbH,L=Ddorf,C=DE
+      Name-Email: joe@foo.bar
+      # Do a commit here, so that we can later print a "done"
+@@ -468,7 +468,7 @@ proc_parameters (ctrl_t ctrl, struct para_data_s *para,
+   /* Check the keylength.  NOTE: If you change this make sure that it
+      macthes the gpgconflist item in gpgsm.c  */
+   if (!get_parameter (para, pKEYLENGTH, 0))
+-    nbits = 2048;
++    nbits = 3072;
+   else
+     nbits = get_parameter_uint (para, pKEYLENGTH);
+   if ((nbits < 1024 || nbits > 4096) && !cardkeyid)
+diff --git a/sm/gpgsm.c b/sm/gpgsm.c
+index b505be1..f051974 100644
+--- a/sm/gpgsm.c
++++ b/sm/gpgsm.c
+@@ -1786,7 +1786,7 @@ main ( int argc, char **argv)
+         /* The next one is an info only item and should match what
+            proc_parameters actually implements.  */
+         es_printf ("default_pubkey_algo:%lu:\"%s:\n", GC_OPT_FLAG_DEFAULT,
+-                   "RSA-2048");
++                   "RSA-3072");
+         es_printf ("compliance:%lu:\"%s:\n", GC_OPT_FLAG_DEFAULT, "gnupg");
+ 
+       }

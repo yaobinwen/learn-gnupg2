@@ -1,0 +1,118 @@
+From 26c0d3a3fc903c1a0de644ebcc99d3e665a80941 Mon Sep 17 00:00:00 2001
+From: Werner Koch <wk@gnupg.org>
+Date: Tue, 15 May 2018 12:19:40 +0200
+Subject: [PATCH 1/4] gpg: Turn --no-mdc-warn into a NOP.
+
+* g10/gpg.c (oNoMDCWarn): Remove.
+(opts): Make --no-mdc-warn a NOP.
+(main): Don't set var.
+* g10/options.h (struct opt): Remove 'no_mdc_var'.
+* g10/cipher-cfb.c (write_header): Assume opt.no_mdc_warn is false.
+* g10/mainproc.c (proc_encrypted): Ditto.
+--
+
+Users should not be allowed to suppress the warning that they are
+shooting into their foot.
+
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit 96350c5d5afcbc7f66c535e38b9fcc7355622855)
+---
+ doc/gpg.texi   | 4 ----
+ g10/cipher.c   | 2 +-
+ g10/gpg.c      | 4 +---
+ g10/mainproc.c | 2 +-
+ g10/options.h  | 1 -
+ 5 files changed, 3 insertions(+), 10 deletions(-)
+
+diff --git a/doc/gpg.texi b/doc/gpg.texi
+index 805a01fc3..956ea4dee 100644
+--- a/doc/gpg.texi
++++ b/doc/gpg.texi
+@@ -2041,10 +2041,6 @@ place an unsafe gpg.conf file in place, and use this file to suppress
+ warnings about itself. The @option{--homedir} permissions warning may only be
+ suppressed on the command line.
+ 
+-@item --no-mdc-warning
+-@opindex no-mdc-warning
+-Suppress the warning about missing MDC integrity protection.
+-
+ @item --require-secmem
+ @itemx --no-require-secmem
+ @opindex require-secmem
+diff --git a/g10/cipher.c b/g10/cipher.c
+index b950d0c3f..2dc77bff6 100644
+--- a/g10/cipher.c
++++ b/g10/cipher.c
+@@ -64,7 +64,7 @@ write_header (cipher_filter_context_t *cfx, iobuf_t a)
+       if (DBG_HASHING)
+         gcry_md_debug (cfx->mdc_hash, "creatmdc");
+     }
+-  else if (!opt.no_mdc_warn)
++  else
+     {
+       log_info ("WARNING: "
+                 "encrypting without integrity protection is dangerous\n");
+diff --git a/g10/gpg.c b/g10/gpg.c
+index aaeddeee2..aeb62aa44 100644
+--- a/g10/gpg.c
++++ b/g10/gpg.c
+@@ -264,7 +264,6 @@ enum cmd_and_opt_values
+     oRequireSecmem,
+     oNoRequireSecmem,
+     oNoPermissionWarn,
+-    oNoMDCWarn,
+     oNoArmor,
+     oNoDefKeyring,
+     oNoKeyring,
+@@ -727,7 +726,6 @@ static ARGPARSE_OPTS opts[] = {
+   ARGPARSE_s_n (oRequireSecmem, "require-secmem", "@"),
+   ARGPARSE_s_n (oNoRequireSecmem, "no-require-secmem", "@"),
+   ARGPARSE_s_n (oNoPermissionWarn, "no-permission-warning", "@"),
+-  ARGPARSE_s_n (oNoMDCWarn, "no-mdc-warning", "@"),
+   ARGPARSE_s_n (oNoArmor, "no-armor", "@"),
+   ARGPARSE_s_n (oNoArmor, "no-armour", "@"),
+   ARGPARSE_s_n (oNoDefKeyring, "no-default-keyring", "@"),
+@@ -911,6 +909,7 @@ static ARGPARSE_OPTS opts[] = {
+   ARGPARSE_s_n (oNoop, "no-force-v3-sigs", "@"),
+   ARGPARSE_s_n (oNoop, "force-v4-certs", "@"),
+   ARGPARSE_s_n (oNoop, "no-force-v4-certs", "@"),
++  ARGPARSE_s_n (oNoop, "no-mdc-warning", "@"),
+ 
+   ARGPARSE_end ()
+ };
+@@ -3156,7 +3155,6 @@ main (int argc, char **argv)
+ 	  case oRequireSecmem: require_secmem=1; break;
+ 	  case oNoRequireSecmem: require_secmem=0; break;
+ 	  case oNoPermissionWarn: opt.no_perm_warn=1; break;
+-	  case oNoMDCWarn: opt.no_mdc_warn=1; break;
+           case oDisplayCharset:
+ 	    if( set_native_charset( pargs.r.ret_str ) )
+ 		log_error(_("'%s' is not a valid character set\n"),
+diff --git a/g10/mainproc.c b/g10/mainproc.c
+index c7deeab5f..fc5b9e556 100644
+--- a/g10/mainproc.c
++++ b/g10/mainproc.c
+@@ -671,7 +671,7 @@ proc_encrypted (CTX c, PACKET *pkt)
+         log_info(_("decryption okay\n"));
+       if (pkt->pkt.encrypted->mdc_method && !result)
+         write_status (STATUS_GOODMDC);
+-      else if (!opt.no_mdc_warn)
++      else
+         log_info (_("WARNING: message was not integrity protected\n"));
+     }
+   else if (gpg_err_code (result) == GPG_ERR_BAD_SIGNATURE)
+diff --git a/g10/options.h b/g10/options.h
+index 96b76f8f2..177ba959f 100644
+--- a/g10/options.h
++++ b/g10/options.h
+@@ -180,7 +180,6 @@ struct
+   prefitem_t *personal_compress_prefs;
+   struct weakhash *weak_digests;
+   int no_perm_warn;
+-  int no_mdc_warn;
+   char *temp_dir;
+   int no_encrypt_to;
+   int encrypt_to_default_key;
+-- 
+2.17.1
+

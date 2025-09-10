@@ -1,0 +1,53 @@
+From 825909e9cd5f344ece6c0b0ea3a9475df1d643de Mon Sep 17 00:00:00 2001
+From: Werner Koch <wk@gnupg.org>
+Date: Thu, 31 May 2018 12:59:40 +0200
+Subject: [PATCH 4/4] gpg: Print a hint on how to decrypt a non-mdc message anyway.
+
+* g10/mainproc.c (proc_encrypted): Print a hint for legacy ciphers w/o
+MDC.  Also print a dedicated status error code
+
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit 874e391665405fc413a69f2ffacdb94bb08da7ff)
+
+[Ubuntu note: also includes 825909e9cd5f344ece6c0b0ea3a9475df1d643de
+ s/GPGRT_LOGLVL_INFO/GPGRT_LOG_INFO/ to compile on  2.2 gnupg
+ --sbeattie]
+---
+ g10/mainproc.c | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/g10/mainproc.c b/g10/mainproc.c
+index 044d72c44..e3be894aa 100644
+--- a/g10/mainproc.c
++++ b/g10/mainproc.c
+@@ -662,8 +662,25 @@ proc_encrypted (CTX c, PACKET *pkt)
+        * avoid attacks changing an MDC message to a non-MDC message,
+        * we fail here.  */
+       log_error (_("WARNING: message was not integrity protected\n"));
+-      if (opt.verbose > 1)
+-        log_info ("decryption forced to fail\n");
++      if (!pkt->pkt.encrypted->mdc_method
++          && (openpgp_cipher_get_algo_blklen (c->dek->algo) == 8
++              || c->dek->algo == CIPHER_ALGO_TWOFISH))
++        {
++          /* Before 2.2.8 we did not fail hard for a missing MDC if
++           * one of the old ciphers where used.  Although these cases
++           * are rare in practice we print a hint on how to decrypt
++           * such messages.  */
++          log_string
++            (GPGRT_LOG_INFO,
++             _("Hint: If this message was created before the year 2003 it is\n"
++               "likely that this message is legitimate.  This is because back\n"
++               "then integrity protection was not widely used.\n"));
++          log_info (_("Use the option '%s' to decrypt anyway.\n"),
++                     "--ignore-mdc-error");
++          write_status_errcode ("nomdc_with_legacy_cipher",
++                                GPG_ERR_DECRYPT_FAILED);
++        }
++      log_info (_("decryption forced to fail!\n"));
+       write_status (STATUS_DECRYPTION_FAILED);
+     }
+   else if (!result || (gpg_err_code (result) == GPG_ERR_BAD_SIGNATURE
+-- 
+2.17.1
+

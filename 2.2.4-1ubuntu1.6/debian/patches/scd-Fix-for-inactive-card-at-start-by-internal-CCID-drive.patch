@@ -1,0 +1,64 @@
+From: NIIBE Yutaka <gniibe@fsij.org>
+Date: Wed, 27 Dec 2017 17:20:03 +0900
+Subject: scd: Fix for inactive card at start by internal CCID driver.
+
+* scd/ccid-driver.c (do_close_reader): Set NULL on close.
+(bulk_in): Move DEBUGOUT and check by EP_INTR.
+(ccid_get_atr): Clear powered_off flag after initial status check.
+
+--
+
+Many card readers automatically turn on inserted card, but some
+defaults to turning off at start.
+
+GnuPG-bug-id: 3508
+Signed-off-by: NIIBE Yutaka <gniibe@fsij.org>
+(cherry picked from commit 4f88b0f56134af2ce56d434b7acd47fcf9b6f7cf)
+---
+ scd/ccid-driver.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/scd/ccid-driver.c b/scd/ccid-driver.c
+index 4f4a32d..5046da5 100644
+--- a/scd/ccid-driver.c
++++ b/scd/ccid-driver.c
+@@ -1778,6 +1778,7 @@ do_close_reader (ccid_driver_t handle)
+         }
+ 
+       libusb_free_transfer (handle->transfer);
++      handle->transfer = NULL;
+     }
+   libusb_release_interface (handle->idev, handle->ifc_no);
+   --ccid_usb_thread_is_alive;
+@@ -2038,10 +2039,14 @@ bulk_in (ccid_driver_t handle, unsigned char *buffer, size_t length,
+       /*
+        * Communication failure by device side.
+        * Possibly, it was forcibly suspended and resumed.
++       *
++       * Only detect this kind of failure when interrupt transfer is
++       * not supported.  For card reader with interrupt transfer
++       * support removal is detected by intr_cb.
+        */
+-      DEBUGOUT ("CCID: card inactive/removed\n");
+-      if (handle->transfer == NULL)
++      if (handle->ep_intr < 0)
+         {
++          DEBUGOUT ("CCID: card inactive/removed\n");
+           handle->powered_off = 1;
+           scd_kick_the_loop ();
+         }
+@@ -2539,6 +2544,14 @@ ccid_get_atr (ccid_driver_t handle,
+   if (statusbits == 2)
+     return CCID_DRIVER_ERR_NO_CARD;
+ 
++  /*
++   * In the first invocation of ccid_slot_status, card reader may
++   * return CCID_DRIVER_ERR_CARD_INACTIVE and handle->powered_off may
++   * become 1.  Because inactive card is no problem (we are turning it
++   * ON here), clear the flag.
++   */
++  handle->powered_off = 0;
++
+   /* For an inactive and also for an active card, issue the PowerOn
+      command to get the ATR.  */
+  again:

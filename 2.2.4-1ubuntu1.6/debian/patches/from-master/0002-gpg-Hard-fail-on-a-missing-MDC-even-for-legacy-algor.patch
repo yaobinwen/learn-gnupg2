@@ -1,0 +1,82 @@
+From 3db1b48a2da42942cb5a57281441167901bdcdc8 Mon Sep 17 00:00:00 2001
+From: Werner Koch <wk@gnupg.org>
+Date: Tue, 15 May 2018 12:33:03 +0200
+Subject: [PATCH 2/4] gpg: Hard fail on a missing MDC even for legacy
+ algorithms.
+
+* g10/mainproc.c (proc_encrypted): Require an MDC or AEAD
+* tests/openpgp/defs.scm (create-gpghome): Use --ignore-mdc-error to
+allow testing with the current files.
+--
+
+Signed-off-by: Werner Koch <wk@gnupg.org>
+(cherry picked from commit d1431901f0143cdc7af8d1a23387e0c6b5bb613f)
+
+Resolved Conflicts:
+	g10/mainproc.c - Remove AEAD stuff.
+---
+ doc/gpg.texi           |  9 +++++----
+ g10/mainproc.c         | 13 +++++--------
+ tests/openpgp/defs.scm |  1 +
+ 3 files changed, 11 insertions(+), 12 deletions(-)
+
+diff --git a/doc/gpg.texi b/doc/gpg.texi
+index 956ea4dee..49a708a3e 100644
+--- a/doc/gpg.texi
++++ b/doc/gpg.texi
+@@ -3182,10 +3182,11 @@ to ignore CRC errors.
+ @item --ignore-mdc-error
+ @opindex ignore-mdc-error
+ This option changes a MDC integrity protection failure into a warning.
+-This can be useful if a message is partially corrupt, but it is
+-necessary to get as much data as possible out of the corrupt message.
+-However, be aware that a MDC protection failure may also mean that the
+-message was tampered with intentionally by an attacker.
++It is required to decrypt old messages which did not use an MDC.  It
++may also be useful if a message is partially garbled, but it is
++necessary to get as much data as possible out of that garbled message.
++Be aware that a missing or failed MDC can be an indication of an
++attack.  Use with caution.
+ 
+ @item --allow-weak-digest-algos
+ @opindex allow-weak-digest-algos
+diff --git a/g10/mainproc.c b/g10/mainproc.c
+index fc5b9e556..5cf15151f 100644
+--- a/g10/mainproc.c
++++ b/g10/mainproc.c
+@@ -649,15 +649,12 @@ proc_encrypted (CTX c, PACKET *pkt)
+     ;
+   else if (!result
+            && !opt.ignore_mdc_error
+-           && !pkt->pkt.encrypted->mdc_method
+-           && openpgp_cipher_get_algo_blklen (c->dek->algo) != 8
+-           && c->dek->algo != CIPHER_ALGO_TWOFISH)
++           && !pkt->pkt.encrypted->mdc_method)
+     {
+-      /* The message has been decrypted but has no MDC despite that a
+-         modern cipher (blocklength != 64 bit, except for Twofish) is
+-         used and the option to ignore MDC errors is not used: To
+-         avoid attacks changing an MDC message to a non-MDC message,
+-         we fail here.  */
++      /* The message has been decrypted but does not carry an MDC.
++       * The option --ignore-mdc-error has also not been used.  To
++       * avoid attacks changing an MDC message to a non-MDC message,
++       * we fail here.  */
+       log_error (_("WARNING: message was not integrity protected\n"));
+       if (opt.verbose > 1)
+         log_info ("decryption forced to fail\n");
+diff --git a/tests/openpgp/defs.scm b/tests/openpgp/defs.scm
+index 95376521d..7e41d19bf 100644
+--- a/tests/openpgp/defs.scm
++++ b/tests/openpgp/defs.scm
+@@ -341,6 +341,7 @@
+                "no-auto-key-retrieve"
+                "no-auto-key-locate"
+ 	       "allow-weak-digest-algos"
++               "ignore-mdc-error"
+ 	       (if have-opt-always-trust
+ 		   "no-auto-check-trustdb" "#no-auto-check-trustdb")
+ 	       (string-append "agent-program "
+-- 
+2.17.1
+
